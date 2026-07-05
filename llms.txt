@@ -1,0 +1,48 @@
+# double-meh-sw
+
+> Service-worker sibling of double-meh: shared Cache API tier, cross-tab request coalescing, transparent request bundling (double-meh wire format v1), invalidation hub, version-upgrade flow, and an io:fetch message transport with navigation-surviving requests. Composable modules + a ready install() assembly. Zero runtime dependencies, ESM-only; the product runs in browser service workers (Node/Bun/Deno run the tests).
+
+## Install
+
+```bash
+npm i double-meh-sw
+```
+
+## Assembly (`double-meh-sw/sw.js`)
+
+```js
+import {install} from 'double-meh-sw/sw.js';
+install({
+  version: '1.2.3',                          // reported over io:version
+  match: '/api/',                            // which GETs the SW handles (default: same-origin non-navigation)
+  cache: {cacheName: 'app-shared'},          // the shared tier
+  bundler: {url: '/bundle', match: '/api/'}  // optional transparent bundling
+});
+```
+
+Serve order per fetch: cache tier → bundle window (configured + matched + client is not a double-meh page) → coalesced network. Everything degrades to direct fetches on any trouble. `install()` returns `{cacheTier, coalescer, bundle, hub}`.
+
+## Modules
+
+- `createCacheTier({cacheName, caches?, store?})` — serve-first shared tier; `handleFetch(request)`, `put(target, response)` (2xx only), `maybeStore(request, response)` (predicate-gated), `invalidate(pattern)` (prefix | RegExp | predicate; feature-detects Deno's missing `keys()`). `x-io-no-cache` bypasses serving.
+- `createCoalescer()` — `run(request, fn)`: one upstream call per method+url+accept in flight; every caller gets its own clone.
+- `createBundleWindow({url, waitTime = 10, maxSize = 20, minSize = 2, fetch?, onPart?})` — `intake(request)` parks a GET in the micro-window; one bundle PUT fans parts back by id; lone requests, bundler failures, and omitted parts all fall back to direct fetches; `onPart` observes every non-synthetic part (the cache write-through hook).
+- `createMessageHub({version, cacheTier, scope, fetch?})` — the control plane; `handleMessage(event)` returns a promise for async work (waitUntil it).
+- Contract: `MESSAGES` (io:hello, io:invalidate, io:invalidated, io:version, io:upgrade, io:fetch, io:result), `CONTRACT_VERSION`, `CAPABILITIES`, `stripEnrichment(request)` (drops `x-io-*` before the wire).
+- Wire: `REQUEST_MIME`, `BUNDLE_MIME`, `buildDoc(entries)`, `toResponse(part)`, `isBundlePayload(response)` — the double-meh bundle wire format v1.
+
+## The message contract (page side)
+
+```js
+const post = m => navigator.serviceWorker.ready.then(r => r.active.postMessage(m));
+post({type: 'io:hello', library: 'double-meh'});      // claim bundling ownership (client-wins)
+post({type: 'io:invalidate', pattern: '/api/users/'}); // evict shared tier; io:invalidated broadcast on channel "io"
+post({type: 'io:version'});                            // → {current}
+post({type: 'io:upgrade'});                            // → skipWaiting()
+// io:fetch: send {type, id, url} with a MessageChannel port; reply {id, status, headers, body(ArrayBuffer, transferred)}
+```
+
+## Docs
+
+- Client: https://github.com/uhop/double-meh · Bundler endpoint: https://github.com/uhop/double-meh-bundler
+- Full API: llms-full.txt

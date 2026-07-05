@@ -1,0 +1,71 @@
+# double-meh-sw — full reference
+
+> The service-worker sibling of double-meh. Browser service workers are the product; zero runtime dependencies; ESM-only. Node >= 18 / Bun / Deno run the test suite through injected `scope`, `fetch`, and `caches`. Design record: double-meh's dev-docs/design.md § Service Worker (division of labor, meta channels, client-wins, the no-op-degradable invariant).
+
+## Design invariants
+
+- **No-op-degradable**: cache, coalescing, and bundling are performance transforms. Any of them — or the whole worker — may vanish (first visit, hard reload, unregistration) and the app must be logically indistinguishable. Every failure path degrades to a direct fetch.
+- **Client-wins**: a page that announces a library via `io:hello {library}` owns its own bundling; the SW never bundles that client's requests.
+- **Synchronous respondWith gating**: only the configured matcher decides whether the SW handles a request; all async work happens after the decision.
+- **Meta channels**: `x-io-*` request headers are the per-request data plane (always stripped before the network); postMessage/BroadcastChannel is the control plane.
+
+## Module: double-meh-sw/sw.js
+
+### install(options?) → {cacheTier, coalescer, bundle, hub}
+
+Wires `fetch`, `message`, and `activate` listeners on the scope.
+
+Options (`InstallOptions`):
+- `scope` — ServiceWorkerGlobalScope-like; injectable for tests. Default `globalThis`.
+- `version` — reported over `io:version` and in the `io:hello` reply.
+- `match` — string prefix | RegExp | predicate over URLs: which GETs the SW handles. Default: same-origin, non-navigation.
+- `cache` — `CacheTierOptions` (below).
+- `bundler` — `BundleWindowOptions` + `match` for eligibility. Absent = no SW bundling.
+- `fetch` — upstream fetch, injectable. Default `globalThis.fetch`.
+- `claim` — `clients.claim()` on activate. Default true.
+
+Serve order: cache tier hit → bundle window (eligible: matched, not the bundler URL, not a bundle-MIME accept, client not library-owned) → coalesced network (+ `maybeStore` predicate). Non-GETs and unmatched requests are never touched.
+
+## Module: double-meh-sw/cache-tier.js
+
+### createCacheTier({cacheName = 'io-shared', caches?, store?}) → CacheTier
+
+- `handleFetch(request)` — Cache API match; `undefined` = pass; requests with `x-io-no-cache` always pass.
+- `put(target, response)` — stores 2xx only; the writers are the bundle unpack, the io:fetch transport, and page-side write-through (pages share the same Cache API).
+- `maybeStore(request, response)` — network responses store only through the `store` predicate (serve-first tier by default).
+- `invalidate(pattern)` — string prefix | RegExp | predicate over URLs; returns the eviction count. Feature-detects Deno's Cache API (no `keys()`): falls back to exact-URL deletion there — a test-runtime accommodation, browsers have `keys()`.
+
+## Module: double-meh-sw/coalesce.js
+
+### createCoalescer() → {run, inFlight}
+
+`run(request, fn)`: keys on method + url + accept; concurrent callers share one upstream call and each receives `response.clone()`. Because every tab's traffic passes through the one SW, this is cross-tab dedup — something no page-side library can do.
+
+## Module: double-meh-sw/bundle-window.js
+
+### createBundleWindow({url, fetch?, waitTime = 10, maxSize = 20, minSize = 2, onPart?}) → {intake, flush, pending}
+
+Transparent bundling for pages without double-meh: `intake(request)` parks eligible GETs; the window flushes on `waitTime` or `maxSize`; one PUT (`{v: 1, parts: [{id, url, method, headers}]}`, content type `application/vnd.double-meh.bundle-request+json`) goes to the bundler; parts settle waiters by id. Degradations — all to direct fetches: a window below `minSize`; a failed or non-bundle bundler response (whole window); an omitted part (that waiter only). `onPart(part, response)` observes every non-synthetic part — `install()` uses it to write parts through to the cache tier.
+
+## Module: double-meh-sw/messages.js
+
+### createMessageHub({version, cacheTier, scope, capabilities?, channelName = 'io', fetch?}) → {handleMessage, isLibraryClient, clients}
+
+`handleMessage(event)` — returns a promise for async messages (waitUntil it):
+- `io:hello {library?}` — records library clients (client-wins); replies `{type, v: CONTRACT_VERSION, version, capabilities}`.
+- `io:invalidate {pattern}` — evicts from the tier, broadcasts `io:invalidated {pattern, evicted}` on BroadcastChannel `channelName`, replies the same.
+- `io:version` — replies `{current: version}`.
+- `io:upgrade` — calls `scope.skipWaiting()`, replies `{done: true}`.
+- `io:fetch {id, url, method?, headers?}` + MessageChannel port — fetches upstream (under waitUntil via install), seeds GETs into the cache tier, replies on the port `{type: 'io:result', id, status, statusText, headers, body}` with the body as a **transferred** ArrayBuffer; failures reply `{id, error}`. This is the navigation-surviving prefetch: the SW completes the request even if the page goes away, and the next page finds it in the tier.
+
+## Module: double-meh-sw/contract.js
+
+`CONTRACT_VERSION` (1), `MESSAGES`, `CHANNEL` ('io'), `CAPABILITIES`, `ENRICHMENT_PREFIX` ('x-io-'), `matches(match, url)`, `stripEnrichment(request)`.
+
+## Module: double-meh-sw/wire.js
+
+The bundle wire format v1 (shared with double-meh and double-meh-bundler; normative spec in the double-meh design record): `REQUEST_MIME`, `BUNDLE_MIME`, `buildDoc(entries)`, `toResponse(part)` (inline JSON / text / base64; 204 and 304 bodyless), `isBundlePayload(response)`.
+
+## License
+
+BSD-3-Clause. Copyright (c) 2026 Eugene Lazutkin.

@@ -1,0 +1,59 @@
+{
+  "name": "double-meh-sw",
+  "version": "1.0.0",
+  "description": "Service-worker sibling of double-meh: shared cache tier, cross-tab request coalescing, transparent bundling, invalidation hub, and version upgrades — composable modules plus a ready assembly. Works with or without double-meh.",
+  "homepage": "https://github.com/uhop/double-meh-sw#readme",
+  "bugs": {
+    "url": "https://github.com/uhop/double-meh-sw/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/uhop/double-meh-sw.git"
+  },
+  "license": "BSD-3-Clause",
+  "author": "Eugene Lazutkin <eugene.lazutkin@gmail.com> (https://www.lazutkin.com/)",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": "./src/index.js",
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "test": "tape6 --flags FO",
+    "test:bun": "tape6-bun --flags FO",
+    "test:deno": "tape6-deno --flags FO",
+    "ts-check": "tsc --noEmit",
+    "js-check": "tsc --project tsconfig.check.json",
+    "lint": "prettier --check .",
+    "lint:fix": "prettier --write ."
+  },
+  "keywords": [
+    "service-worker",
+    "cache",
+    "bundling",
+    "offline",
+    "double-meh",
+    "zero-dependency"
+  ],
+  "funding": "https://github.com/sponsors/uhop",
+  "files": [
+    "src",
+    "LICENSE",
+    "README.md",
+    "llms.txt",
+    "llms-full.txt"
+  ],
+  "tape6": {
+    "tests": [
+      "/tests/test-*.*js"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "prettier": "^3.9.4",
+    "tape-six": "^1.13.0",
+    "typescript": "^6.0.3"
+  }
+}
