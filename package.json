@@ -1,7 +1,7 @@
 {
   "name": "double-meh-sw",
   "version": "1.0.0",
-  "description": "Service-worker sibling of double-meh: shared cache tier, cross-tab request coalescing, transparent bundling, invalidation hub, and version upgrades — composable modules plus a ready assembly. Works with or without double-meh.",
+  "description": "Service-worker sibling of double-meh: shared cache tier, cross-tab request coalescing, transparent bundling, invalidation hub, and version upgrades \u2014 composable modules plus a ready assembly. Works with or without double-meh.",
   "homepage": "https://github.com/uhop/double-meh-sw#readme",
   "bugs": {
     "url": "https://github.com/uhop/double-meh-sw/issues"
@@ -27,7 +27,8 @@
     "ts-check": "tsc --noEmit",
     "js-check": "tsc --project tsconfig.check.json",
     "lint": "prettier --check .",
-    "lint:fix": "prettier --write ."
+    "lint:fix": "prettier --write .",
+    "wiki:index": "wiki-search-index --wiki wiki --repo uhop/double-meh-sw --file README.md"
   },
   "keywords": [
     "service-worker",
@@ -54,6 +55,7 @@
     "@types/node": "^26.1.0",
     "prettier": "^3.9.4",
     "tape-six": "^1.13.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "wiki-search-index": "^0.2.0"
   }
 }

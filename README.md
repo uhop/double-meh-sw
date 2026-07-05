@@ -5,6 +5,8 @@
 
 The service-worker sibling of [double-meh](https://github.com/uhop/double-meh): one worker owning what only a service worker can — a **shared cache tier** served to every tab (and to code that has never heard of double-meh), **cross-tab request coalescing** (identical concurrent GETs collapse to one wire call), **transparent request bundling** for pages without the library, an **invalidation hub**, a **version-upgrade flow**, and the `io:fetch` **message transport** whose requests survive page navigation.
 
+Docs: [browse the wiki](https://github.com/uhop/double-meh-sw/wiki) &middot; [search it](https://uhop.github.io/wiki-search/app/?wiki=uhop/double-meh-sw).
+
 Composable modules plus a ready assembly — compose into an existing service worker, or deploy the assembly directly:
 
 ```js

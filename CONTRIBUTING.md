@@ -4,10 +4,10 @@ Thank you for your interest in contributing!
 
 ## Getting started
 
-Clone and install:
+This project uses a git submodule for the wiki. Clone recursively:
 
 ```bash
-git clone https://github.com/uhop/double-meh-sw.git
+git clone --recursive https://github.com/uhop/double-meh-sw.git
 cd double-meh-sw
 npm install
 ```

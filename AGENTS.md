@@ -10,6 +10,16 @@ labor, meta channels, client-wins ownership, the no-op-degradable invariant — 
 double-meh design record (`double-meh/dev-docs/design.md` § Service Worker); the bundle wire
 format is shared with `double-meh-bundler`.
 
+## Setup
+
+This project uses a git submodule for the wiki:
+
+```bash
+git clone --recursive https://github.com/uhop/double-meh-sw.git
+cd double-meh-sw
+npm install
+```
+
 ## Commands
 
 - **Install:** `npm install`
