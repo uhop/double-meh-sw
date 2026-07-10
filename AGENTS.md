@@ -57,6 +57,7 @@ The gate before shipping: `lint` + `ts-check` + `js-check` + tests on Node, Bun,
 
 - `tape-six`; tests in `tests/test-*.mjs`, green on Node/Bun/Deno.
 - Everything is tested through injected fakes (`scope`, `fetch`, mock `caches`); Deno additionally
-  exercises the real Cache API (which lacks `keys()` there — the tier feature-detects).
+  exercises the real Cache API (Deno 2.9.2 ships `keys()` with a cross-cache orphan bug after
+  `caches.delete()`; the tier still feature-detects for older runtimes).
 - Keep the degradation paths covered: bundler failure, missing parts, lone-request windows,
   client-wins pass-through, `x-io-no-cache`, respondWith gating.

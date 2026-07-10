@@ -33,7 +33,7 @@ export const createCacheTier = (options = {}) => {
   const invalidate = async pattern => {
     const cache = await open();
     if (typeof cache.keys !== 'function') {
-      // Deno CLI ships the Cache API without keys(): exact-URL eviction is the honest fallback
+      // keys() can be absent (older Deno CLIs, injected environments): exact-URL eviction is the honest fallback
       return (await cache.delete(String(pattern))) ? 1 : 0;
     }
     const test =
