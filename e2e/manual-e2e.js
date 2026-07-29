@@ -2,7 +2,7 @@
 // fetches bundled through the real double-meh-bundler -> real upstream HTTP hop; plus the whole
 // message contract over real postMessage/MessageChannel/BroadcastChannel.
 // Prerequisites (not CI-able until the packages publish): sibling checkouts of double-meh-bundler
-// and double-meh (for playwright + its Chromium) next to this repo. Run: node e2e/manual-e2e.mjs
+// and double-meh (for playwright + its Chromium) next to this repo. Run: node e2e/manual-e2e.js
 import {fileURLToPath} from 'node:url';
 import {dirname, resolve} from 'node:path';
 import {createServer} from 'node:http';

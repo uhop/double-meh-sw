@@ -55,7 +55,7 @@ The gate before shipping: `lint` + `ts-check` + `js-check` + tests on Node, Bun,
 
 ## Testing
 
-- `tape-six`; tests in `tests/test-*.mjs`, green on Node/Bun/Deno.
+- `tape-six`; tests in `tests/test-*.js`, green on Node/Bun/Deno.
 - Everything is tested through injected fakes (`scope`, `fetch`, mock `caches`); Deno additionally
   exercises the real Cache API (Deno 2.9.2 ships `keys()` with a cross-cache orphan bug after
   `caches.delete()`; the tier still feature-detects for older runtimes).

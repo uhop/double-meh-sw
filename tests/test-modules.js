@@ -5,7 +5,7 @@ import {buildDoc, toResponse} from '../src/wire.js';
 import {createCacheTier} from '../src/cache-tier.js';
 import {createCoalescer} from '../src/coalesce.js';
 import {createBundleWindow} from '../src/bundle-window.js';
-import {json, mockCaches, upstreamOf, sleep} from './helper.mjs';
+import {json, mockCaches, upstreamOf, sleep} from './helper.js';
 
 const BASE = 'https://app.example.com';
 

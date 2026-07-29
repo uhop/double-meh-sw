@@ -1,7 +1,7 @@
 import test from 'tape-six';
 
 import {createCacheTier} from '../src/cache-tier.js';
-import {json} from './helper.mjs';
+import {json} from './helper.js';
 
 const hasCaches = typeof caches !== 'undefined';
 const BASE = 'https://real-caches.example.com';

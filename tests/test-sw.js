@@ -4,7 +4,7 @@ import {install} from '../src/sw.js';
 import {createMessageHub} from '../src/messages.js';
 import {createCacheTier} from '../src/cache-tier.js';
 import {MESSAGES, CONTRACT_VERSION} from '../src/contract.js';
-import {json, mockCaches, fakeScope, fetchEvent, upstreamOf, tick} from './helper.mjs';
+import {json, mockCaches, fakeScope, fetchEvent, upstreamOf, tick} from './helper.js';
 
 const BASE = 'https://app.example.com';
 
