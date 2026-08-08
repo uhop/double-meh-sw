@@ -20,6 +20,8 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the module map and dependency graph
 2. Lint: `npm run lint:fix`
 3. Test: `npm test` (also `npm run test:bun`, `npm run test:deno`)
 4. Type-check: `npm run ts-check` and `npm run js-check`
+5. If you touched the message contract or the bundle path, run the real-browser suite too:
+   `npm run browser:install` once, then `npm run test:e2e`
 
 ## Code style
 

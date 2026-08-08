@@ -20,6 +20,8 @@ export interface InstallOptions {
   /** Enables transparent SW-side bundling for pages without double-meh. */
   bundler?: BundleWindowOptions & {match?: Matcher};
   fetch?: (request: Request) => Response | Promise<Response>;
+  /** BroadcastChannel-like for `io:invalidated` fan-out, or `null` to disable it. */
+  channel?: {postMessage(message: unknown): void} | null;
   /** `clients.claim()` on activate. Default: true. */
   claim?: boolean;
 }

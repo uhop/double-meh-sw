@@ -18,6 +18,7 @@ double-meh-sw
 │   ├── sw.js             # install(options) — wires fetch/message/activate on a scope
 │   └── index.js          # Barrel re-exports
 ├── tests/                # Injected scope/fetch/caches fakes; Deno also runs the real Cache API
+├── e2e/                  # Real Chromium, real bundler, the published double-meh as the page half
 └── examples/             # A deployable sw.js + page-side registration
 ```
 
@@ -25,7 +26,12 @@ double-meh-sw
 
 - **Two intakes, one machinery**: fetch events (interception) and messages (the `io:fetch`
   transport) feed the same cache tier; the transport also serves _uncontrolled_ pages and
-  completes requests that outlive their page (navigation-surviving prefetch).
+  completes requests that outlive their page (navigation-surviving prefetch). That survival is an
+  ordering property: the buffered reply is posted only once the tier write has landed.
+- **Negotiation over versioning**: the transport's streamed body is asked for per request
+  (`stream: true`) and answered only where the platform can transfer a `ReadableStream`. A widening
+  that v1 clients cannot observe is not a new contract version — the flag discriminates, exactly as
+  the content type does for the bundler's streamed framing.
 - **Serve order**: cache tier → bundle window (when configured, matched, and the client is not a
   double-meh page) → coalesced network. The respondWith decision itself is synchronous and gated
   only by the matcher (default: same-origin non-navigation GETs).

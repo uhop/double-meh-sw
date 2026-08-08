@@ -1,7 +1,7 @@
 import test from 'tape-six';
 
 import {install} from '../src/sw.js';
-import {createMessageHub} from '../src/messages.js';
+import {createMessageHub, supportsTransferableStreams} from '../src/messages.js';
 import {createCacheTier} from '../src/cache-tier.js';
 import {MESSAGES, CONTRACT_VERSION} from '../src/contract.js';
 import {json, mockCaches, fakeScope, fetchEvent, upstreamOf, tick} from './helper.js';
@@ -139,6 +139,94 @@ test('messages: the io:fetch transport replies over the port and seeds the tier'
   const seeded = await tier.handleFetch(new Request(BASE + '/prefetch'));
   t.ok(seeded, 'the tier was seeded — the navigation-surviving prefetch');
   t.equal(seeded.headers.get('etag'), '"p1"', 'with its headers');
+});
+
+test('messages: io:fetch negotiates a streamed body, and falls back when it cannot', async t => {
+  const tier = createCacheTier({caches: mockCaches()});
+  const upstream = upstreamOf({'/big': () => json({streamed: true})});
+  const hub = createMessageHub({cacheTier: tier, fetch: upstream});
+  const messages = [];
+  const port = {postMessage: (message, transfer) => messages.push({message, transfer})};
+  await hub.handleMessage({
+    data: {type: MESSAGES.fetch, id: 's1', url: BASE + '/big', stream: true},
+    ports: [port]
+  });
+  const {message, transfer} = messages[0];
+  t.equal(message.id, 's1', 'correlated by id');
+  t.equal(transfer[0], message.body, 'whatever the body is, it transfers');
+  if (supportsTransferableStreams()) {
+    t.ok(message.stream, 'the streamed shape is flagged');
+    t.ok(message.body instanceof ReadableStream, 'the body is a transferable stream');
+    t.deepEqual(await new Response(message.body).json(), {streamed: true}, 'and it reads back');
+  } else {
+    t.notOk(message.stream, 'no stream flag where the platform cannot transfer one');
+    t.deepEqual(JSON.parse(new TextDecoder().decode(message.body)), {streamed: true}, 'buffered');
+  }
+  const seeded = await tier.handleFetch(new Request(BASE + '/big'));
+  t.ok(seeded, 'the tier is seeded either way — the clone is taken before the body leaves');
+});
+
+test('messages: a request without stream:true still gets the v1 ArrayBuffer body', async t => {
+  const hub = createMessageHub({fetch: upstreamOf({'/plain': () => json({v1: true})})});
+  const messages = [];
+  await hub.handleMessage({
+    data: {type: MESSAGES.fetch, id: 's2', url: BASE + '/plain'},
+    ports: [{postMessage: message => messages.push(message)}]
+  });
+  t.ok(messages[0].body instanceof ArrayBuffer, 'v1 clients are untouched by the negotiation');
+  t.notOk(messages[0].stream, 'and are never told about streams');
+});
+
+test('messages: hello advertises the stream capability exactly where it works', async t => {
+  const hub = createMessageHub({});
+  const replies = [];
+  hub.handleMessage({
+    data: {type: MESSAGES.hello},
+    source: {id: 'tab-1', postMessage: message => replies.push(message)}
+  });
+  t.equal(
+    replies[0].capabilities.includes('stream'),
+    supportsTransferableStreams(),
+    'advertised iff the platform can transfer a stream'
+  );
+  t.ok(replies[0].capabilities.includes('transport'), 'the base capabilities still ride');
+});
+
+test('messages: the buffered transport seeds the tier before it replies', async t => {
+  let release;
+  const written = new Promise(resolve => (release = resolve));
+  const messages = [];
+  const hub = createMessageHub({
+    cacheTier: {put: () => written, handleFetch: async () => undefined},
+    fetch: upstreamOf({'/prefetch': () => json({later: true})})
+  });
+  const pending = hub.handleMessage({
+    data: {type: MESSAGES.fetch, id: 'g1', url: BASE + '/prefetch'},
+    ports: [{postMessage: message => messages.push(message)}]
+  });
+  await tick();
+  t.equal(messages.length, 0, 'the reply waits while the tier write is outstanding');
+  release(true);
+  await pending;
+  t.equal(messages.length, 1, 'and lands once the entry is in the tier');
+});
+
+test('messages: a failing tier write never fails a fetch the client already holds', async t => {
+  const hub = createMessageHub({
+    cacheTier: {
+      put: () => Promise.reject(new Error('QuotaExceededError')),
+      handleFetch: async () => undefined
+    },
+    fetch: upstreamOf({'/quota': () => json({served: true})})
+  });
+  const messages = [];
+  await hub.handleMessage({
+    data: {type: MESSAGES.fetch, id: 's3', url: BASE + '/quota'},
+    ports: [{postMessage: message => messages.push(message)}]
+  });
+  t.equal(messages.length, 1, 'exactly one reply — no error message chases the result');
+  t.equal(messages[0].status, 200, 'the result stands');
+  t.equal(messages[0].error, undefined, 'the tier failure is swallowed, not reported');
 });
 
 test('messages: transport failure reports over the port', async t => {

@@ -10,6 +10,8 @@ export declare const MESSAGES: {
 };
 export declare const CHANNEL: string;
 export declare const CAPABILITIES: string[];
+/** Announced in `io:hello` only where transferable streams exist. */
+export declare const STREAM_CAPABILITY: string;
 export declare const ENRICHMENT_PREFIX: string;
 
 export type Matcher = string | RegExp | ((url: string) => boolean);

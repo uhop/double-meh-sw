@@ -10,7 +10,7 @@ Docs: [browse the wiki](https://github.com/uhop/double-meh-sw/wiki) &middot; [se
 Composable modules plus a ready assembly — compose into an existing service worker, or deploy the assembly directly:
 
 ```js
-// sw.js — served from your origin, registered with {type: 'module'}
+// sw.js — bundle this, serve the output from your origin, register it with {type: 'module'}
 import {install} from 'double-meh-sw/sw.js';
 
 install({
@@ -19,6 +19,9 @@ install({
   bundler: {url: '/bundle', match: '/api/'} // transparent bundling via double-meh-bundler
 });
 ```
+
+A module service worker does not resolve bare specifiers — an unbundled worker with the import above
+fails to register. Bundle it, or import by URL (`/node_modules/double-meh-sw/src/sw.js`).
 
 Everything **degrades to plain fetches** by design: bundler trouble, missing parts, or the worker being absent entirely (first visit, hard reload) must be logically invisible — the whole package is a performance adornment, never a semantic layer. Pages running double-meh announce themselves over `io:hello` and keep ownership of their own bundling (the SW passes them through); pages without it get zero-integration acceleration.
 
@@ -41,10 +44,13 @@ npm i double-meh-sw
 
 The ecosystem: [double-meh](https://github.com/uhop/double-meh) (the client), [double-meh-bundler](https://github.com/uhop/double-meh-bundler) (the server endpoint), and this worker between them — each useful alone, better together.
 
-Zero runtime dependencies. ESM. Browser service workers are the product; Node ≥ 18, Bun, and Deno run the test suite (injected scope/fetch/caches).
+Zero runtime dependencies. ESM. Browser service workers are the product; Node ≥ 18, Bun, and Deno run the test suite (injected scope/fetch/caches), and `npm run test:e2e` drives a real Chromium against the real bundler and the published client.
 
-## Release notes
+## Release history
 
-- 1.0.0 — _(unreleased)_ The initial release: cache tier, coalescer, bundle window, message hub, `install()` assembly.
+- 1.0.0 _The initial release: shared cache tier, cross-tab coalescing, transparent bundling, the `io:*` message contract, and a transport that can negotiate a streamed body._
+
+See the [release notes](https://github.com/uhop/double-meh-sw/wiki/Release-notes) for the long-form
+history.
 
 License: BSD-3-Clause.

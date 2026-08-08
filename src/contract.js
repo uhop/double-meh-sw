@@ -16,6 +16,9 @@ export const CHANNEL = 'io';
 
 export const CAPABILITIES = ['cache', 'coalesce', 'bundle', 'invalidate', 'version', 'transport'];
 
+// advertised only where transferable streams exist; `io:fetch` opts in per request with stream: true
+export const STREAM_CAPABILITY = 'stream';
+
 // the per-request data plane: negotiated, stripped before the wire, harmless if leaked
 export const ENRICHMENT_PREFIX = 'x-io-';
 

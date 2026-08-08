@@ -3,6 +3,7 @@ export {
   MESSAGES,
   CHANNEL,
   CAPABILITIES,
+  STREAM_CAPABILITY,
   ENRICHMENT_PREFIX,
   matches,
   stripEnrichment
@@ -16,7 +17,7 @@ export {createCoalescer} from './coalesce.js';
 export type {Coalescer} from './coalesce.js';
 export {createBundleWindow} from './bundle-window.js';
 export type {BundleWindow, BundleWindowOptions} from './bundle-window.js';
-export {createMessageHub} from './messages.js';
+export {createMessageHub, supportsTransferableStreams} from './messages.js';
 export type {MessageHub, MessageHubOptions} from './messages.js';
 export {install} from './sw.js';
 export type {InstallOptions, Installed} from './sw.js';

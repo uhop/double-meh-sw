@@ -10,6 +10,9 @@ npm i double-meh-sw
 
 ## Assembly (`double-meh-sw/sw.js`)
 
+Bundle the worker: a module SW does not resolve bare specifiers (registration fails), so ship the
+bundled output — or import by URL, `/node_modules/double-meh-sw/src/sw.js`.
+
 ```js
 import {install} from 'double-meh-sw/sw.js';
 install({
@@ -27,8 +30,8 @@ Serve order per fetch: cache tier → bundle window (configured + matched + clie
 - `createCacheTier({cacheName, caches?, store?})` — serve-first shared tier; `handleFetch(request)`, `put(target, response)` (2xx only), `maybeStore(request, response)` (predicate-gated), `invalidate(pattern)` (prefix | RegExp | predicate; feature-detects Deno's missing `keys()`). `x-io-no-cache` bypasses serving.
 - `createCoalescer()` — `run(request, fn)`: one upstream call per method+url+accept in flight; every caller gets its own clone.
 - `createBundleWindow({url, waitTime = 10, maxSize = 20, minSize = 2, fetch?, onPart?})` — `intake(request)` parks a GET in the micro-window; one bundle PUT fans parts back by id; lone requests, bundler failures, and omitted parts all fall back to direct fetches; `onPart` observes every non-synthetic part (the cache write-through hook).
-- `createMessageHub({version, cacheTier, scope, fetch?})` — the control plane; `handleMessage(event)` returns a promise for async work (waitUntil it).
-- Contract: `MESSAGES` (io:hello, io:invalidate, io:invalidated, io:version, io:upgrade, io:fetch, io:result), `CONTRACT_VERSION`, `CAPABILITIES`, `stripEnrichment(request)` (drops `x-io-*` before the wire).
+- `createMessageHub({version, cacheTier, scope, channel?, fetch?})` — the control plane; `handleMessage(event)` returns a promise for async work (waitUntil it). `channel` injects (or with `null` disables) the `BroadcastChannel` fan-out.
+- Contract: `MESSAGES` (io:hello, io:invalidate, io:invalidated, io:version, io:upgrade, io:fetch, io:result), `CONTRACT_VERSION`, `CAPABILITIES`, `STREAM_CAPABILITY`, `stripEnrichment(request)` (drops `x-io-*` before the wire).
 - Wire: `REQUEST_MIME`, `BUNDLE_MIME`, `buildDoc(entries)`, `toResponse(part)`, `isBundlePayload(response)` — the double-meh bundle wire format v1.
 
 ## The message contract (page side)
@@ -40,6 +43,8 @@ post({type: 'io:invalidate', pattern: '/api/users/'}); // evict shared tier; io:
 post({type: 'io:version'});                            // → {current}
 post({type: 'io:upgrade'});                            // → skipWaiting()
 // io:fetch: send {type, id, url} with a MessageChannel port; reply {id, status, headers, body(ArrayBuffer, transferred)}
+// add stream: true to get a transferred ReadableStream instead where the platform allows it
+//   (capability "stream" in the io:hello reply); the buffered default seeds the tier before replying
 ```
 
 ## Docs

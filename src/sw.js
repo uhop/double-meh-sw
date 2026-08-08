@@ -27,6 +27,7 @@ export const install = (rawOptions = {}) => {
     version: options.version,
     cacheTier,
     scope,
+    channel: options.channel,
     fetch: upstream
   });
   const bundler = options.bundler;

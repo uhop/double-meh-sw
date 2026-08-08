@@ -6,9 +6,12 @@ export interface MessageHubOptions {
   cacheTier?: CacheTier;
   /** ServiceWorkerGlobalScope-like: `skipWaiting` is the only member used. */
   scope?: {skipWaiting?(): Promise<void> | void};
+  /** Default: the standard list, plus "stream" where transferable streams exist. */
   capabilities?: string[];
   /** BroadcastChannel name for `io:invalidated` fan-out. Default: "io". */
   channelName?: string;
+  /** BroadcastChannel-like for the fan-out, or `null` to disable it. Default: a real one. */
+  channel?: {postMessage(message: unknown): void} | null;
   fetch?: (request: Request) => Response | Promise<Response>;
 }
 
@@ -24,3 +27,6 @@ export interface MessageHub {
 }
 
 export declare function createMessageHub(options?: MessageHubOptions): MessageHub;
+
+/** Memoized platform probe: can a `ReadableStream` be transferred by `postMessage`? */
+export declare function supportsTransferableStreams(): boolean;

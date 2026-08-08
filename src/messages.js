@@ -1,20 +1,43 @@
 // @ts-self-types="./messages.d.ts"
-import {CONTRACT_VERSION, MESSAGES, CHANNEL, CAPABILITIES} from './contract.js';
+import {CONTRACT_VERSION, MESSAGES, CHANNEL, CAPABILITIES, STREAM_CAPABILITY} from './contract.js';
+
+let transferableStreams;
+
+// a transferred stream is backed by a port pair: cancel the probe's clone or Deno never exits
+export const supportsTransferableStreams = () => {
+  if (transferableStreams === undefined) {
+    try {
+      const stream = new ReadableStream();
+      structuredClone(stream, {transfer: [stream]}).cancel();
+      transferableStreams = true;
+    } catch {
+      transferableStreams = false;
+    }
+  }
+  return transferableStreams;
+};
 
 export const createMessageHub = (options = {}) => {
   const {
     version = '0',
     cacheTier,
     scope = globalThis,
-    capabilities = CAPABILITIES,
+    capabilities = supportsTransferableStreams()
+      ? [...CAPABILITIES, STREAM_CAPABILITY]
+      : CAPABILITIES,
     channelName = CHANNEL,
+    channel: injectedChannel,
     fetch: upstream = globalThis.fetch
   } = /** @type {import('./messages.d.ts').MessageHubOptions} */ (options);
   const worker = /** @type {{skipWaiting?: () => void | Promise<void>}} */ (scope);
   // clients that announced a double-meh library take ownership of bundling (client-wins)
   const libraryClients = new Set();
   const channel =
-    typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(channelName) : null;
+    injectedChannel !== undefined
+      ? injectedChannel
+      : typeof BroadcastChannel !== 'undefined'
+        ? new BroadcastChannel(channelName)
+        : null;
 
   const isLibraryClient = clientId => libraryClients.has(clientId);
 
@@ -32,18 +55,30 @@ export const createMessageHub = (options = {}) => {
         headers: data.headers || {}
       });
       const response = await upstream(request);
-      if (cacheTier && request.method === 'GET') await cacheTier.put(request, response.clone());
-      const body = await response.arrayBuffer();
+      const shared = cacheTier && request.method === 'GET' ? response.clone() : null;
+      // best-effort: a tier write must never fail a fetch the client already holds
+      const store = () => (shared ? cacheTier.put(request, shared).catch(() => false) : null);
       const message = {
         type: MESSAGES.result,
         id: data.id,
         status: response.status,
         statusText: response.statusText,
-        headers: [...response.headers],
-        body
+        headers: [...response.headers]
       };
       // the body transfers, not copies — this is the navigation-surviving prefetch path
-      port.postMessage(message, [body]);
+      if (data.stream && response.body && supportsTransferableStreams()) {
+        // streamed: the tier drains its tee branch behind the client, which already has the body
+        const stored = store();
+        message.stream = true;
+        message.body = response.body;
+        port.postMessage(message, [message.body]);
+        await stored;
+        return;
+      }
+      // buffered: seeding the tier BEFORE the reply is what lets a prefetch survive a navigation
+      await store();
+      message.body = await response.arrayBuffer();
+      port.postMessage(message, [message.body]);
     } catch (error) {
       port.postMessage({
         type: MESSAGES.result,

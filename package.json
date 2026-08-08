@@ -1,7 +1,7 @@
 {
   "name": "double-meh-sw",
   "version": "1.0.0",
-  "description": "Service-worker sibling of double-meh: shared cache tier, cross-tab request coalescing, transparent bundling, invalidation hub, and version upgrades \u2014 composable modules plus a ready assembly. Works with or without double-meh.",
+  "description": "Service-worker sibling of double-meh: shared cache tier, cross-tab request coalescing, transparent bundling, invalidation hub, and version upgrades — composable modules plus a ready assembly. Works with or without double-meh.",
   "homepage": "https://github.com/uhop/double-meh-sw#readme",
   "bugs": {
     "url": "https://github.com/uhop/double-meh-sw/issues"
@@ -24,6 +24,8 @@
     "test": "tape6 --flags FO",
     "test:bun": "tape6-bun --flags FO",
     "test:deno": "tape6-deno --flags FO",
+    "test:e2e": "tape6 --flags FO 'e2e/test-*.js'",
+    "browser:install": "npx playwright install chromium",
     "ts-check": "tsc --noEmit",
     "js-check": "tsc --project tsconfig.check.json",
     "lint": "prettier --check .",
@@ -52,9 +54,14 @@
     ]
   },
   "devDependencies": {
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.2.0",
+    "double-meh": "^1.1.1",
+    "double-meh-bundler": "^1.0.0",
+    "fast-check": "^4.9.0",
+    "playwright": "^1.62.1",
     "prettier": "^3.9.6",
     "tape-six": "^1.16.2",
+    "tape-six-fast-check": "^1.0.0",
     "typescript": "^7.0.2",
     "wiki-search-index": "^0.2.0"
   }

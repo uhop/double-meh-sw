@@ -24,10 +24,12 @@ npm install
 
 - **Install:** `npm install`
 - **Test:** `npm test`; also `npm run test:bun`, `npm run test:deno`
+- **Real-browser e2e:** `npm run browser:install` once, then `npm run test:e2e`
 - **TypeScript check:** `npm run ts-check` · **JS check:** `npm run js-check`
 - **Format check / fix:** `npm run lint` / `npm run lint:fix`
 
-The gate before shipping: `lint` + `ts-check` + `js-check` + tests on Node, Bun, and Deno.
+The gate before shipping: `lint` + `ts-check` + `js-check` + tests on Node, Bun, and Deno, then `test:e2e`.
+CI runs the first four; the e2e stays local — it needs a Chromium download.
 
 ## Code style
 
@@ -61,3 +63,11 @@ The gate before shipping: `lint` + `ts-check` + `js-check` + tests on Node, Bun,
   `caches.delete()`; the tier still feature-detects for older runtimes).
 - Keep the degradation paths covered: bundler failure, missing parts, lone-request windows,
   client-wins pass-through, `x-io-no-cache`, respondWith gating.
+- `tests/test-race.js` holds the fast-check properties (`t.scheduler`): coalescing under interleaved
+  arrivals, invalidation exactness, and "a tab fetch always resolves". Use `s.waitFor(promise)`, not
+  the deprecated `waitAll()` — `waitAll` returns early when the queue is momentarily empty, which
+  every chain here hits while parked on an unscheduled microtask.
+- `e2e/` is real Chromium over real wires, asserted: `harness.js` owns the server + browser
+  lifecycle, `test-e2e.js` the six arms, `test-e2e-double-meh.js` the conformance arm against the
+  **published** double-meh. Bun cannot transfer streams, so the buffered fallback is genuinely
+  exercised by `npm run test:bun` — keep both branches asserted.
