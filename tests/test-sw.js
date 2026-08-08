@@ -54,6 +54,44 @@ test('install: cache tier first, bundling second, coalesced network last', async
   t.deepEqual(await bundledPart.json(), {via: 'bundle', path: '/api/a'}, 'with their bodies');
 });
 
+test('install: tier trouble never fails a request the network answered', async t => {
+  const failing = {
+    open: async () => ({
+      match: async () => {
+        throw new DOMException('read', 'UnknownError');
+      },
+      put: async () => {
+        throw new DOMException('quota exceeded', 'QuotaExceededError');
+      },
+      delete: async () => false,
+      keys: async () => []
+    })
+  };
+  const scope = fakeScope();
+  const upstream = upstreamOf({'/api/a': () => json({served: true})});
+  install({scope, fetch: upstream, channel: null, cache: {caches: failing, store: () => true}});
+  const event = scope.dispatch('fetch', fetchEvent(new Request(BASE + '/api/a')));
+  const response = await event.response;
+  t.equal(response.status, 200, 'a failed tier read is a miss and a failed write is nothing');
+  t.deepEqual(await response.json(), {served: true}, 'the page gets the response it fetched');
+});
+
+test('install: a misconfigured matcher degrades instead of failing the request', async t => {
+  const scope = fakeScope();
+  const upstream = upstreamOf({'/api/a': () => json({direct: true})});
+  install({
+    scope,
+    fetch: upstream,
+    channel: null,
+    cache: {caches: mockCaches()},
+    // a plain-JS caller can pass anything; calling it would reject the respondWith
+    bundler: {url: BASE + '/bundle', match: 42, waitTime: 5}
+  });
+  const event = scope.dispatch('fetch', fetchEvent(new Request(BASE + '/api/a')));
+  t.deepEqual(await (await event.response).json(), {direct: true}, 'served, not failed');
+  t.deepEqual(upstream.calls, ['GET /api/a'], 'a direct fetch — bundling simply never engaged');
+});
+
 test('install: respondWith gating — non-GET, cross-origin, navigation pass', async t => {
   const scope = fakeScope();
   const upstream = upstreamOf({});

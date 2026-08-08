@@ -59,12 +59,14 @@ export const install = (rawOptions = {}) => {
   };
 
   const serve = async (request, event) => {
-    const cached = await cacheTier.handleFetch(request);
+    // the tier is an adornment: a failed read is a miss, a failed write is nothing. Only the
+    // network may fail the request — quota errors must never break a page that fetched fine
+    const cached = await cacheTier.handleFetch(request).catch(() => undefined);
     if (cached) return cached;
     if (bundleEligible(request, event)) return bundle.intake(stripEnrichment(request));
     const outgoing = stripEnrichment(request);
     const response = await coalescer.run(outgoing, () => upstream(outgoing));
-    await cacheTier.maybeStore(request, response);
+    await cacheTier.maybeStore(request, response).catch(() => false);
     return response;
   };
 

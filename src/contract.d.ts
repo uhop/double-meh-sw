@@ -16,6 +16,7 @@ export declare const ENRICHMENT_PREFIX: string;
 
 export type Matcher = string | RegExp | ((url: string) => boolean);
 
+/** `null`/`undefined` matches everything; a value outside `Matcher` matches nothing. */
 export declare function matches(match: Matcher | null | undefined, url: string): boolean;
 /** Returns the request unchanged when it carries no `x-io-*` headers. */
 export declare function stripEnrichment(request: Request): Request;

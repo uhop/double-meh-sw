@@ -1,6 +1,6 @@
 import test from 'tape-six';
 
-import {stripEnrichment} from '../src/contract.js';
+import {matches, stripEnrichment} from '../src/contract.js';
 import {buildDoc, toResponse} from '../src/wire.js';
 import {createCacheTier} from '../src/cache-tier.js';
 import {createCoalescer} from '../src/coalesce.js';
@@ -18,6 +18,19 @@ test('contract: stripEnrichment removes only x-io-* headers', async t => {
   t.equal(stripped.headers.get('x-io-bundle'), null, 'enrichment stripped');
   const plain = new Request(BASE + '/b', {headers: {accept: 'text/csv'}});
   t.equal(stripEnrichment(plain), plain, 'no enrichment: the same request comes back');
+});
+
+test('contract: a matcher outside the Matcher union matches nothing, and never throws', async t => {
+  t.ok(matches(null, BASE + '/a'), 'an absent matcher matches everything');
+  t.ok(matches(BASE + '/a', BASE + '/api'), 'a string is a prefix');
+  t.ok(matches(/api/, BASE + '/api'), 'a RegExp is tested');
+  t.ok(
+    matches(url => url.endsWith('/a'), BASE + '/a'),
+    'a predicate is called'
+  );
+  // a plain-JS caller has no type check, and a throw here would fail the request it guards
+  t.notOk(matches(42, BASE + '/a'), 'a number matches nothing');
+  t.notOk(matches({}, BASE + '/a'), 'an object matches nothing');
 });
 
 test('wire: doc build and part decode round the format', async t => {

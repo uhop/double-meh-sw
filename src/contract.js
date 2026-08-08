@@ -22,13 +22,15 @@ export const STREAM_CAPABILITY = 'stream';
 // the per-request data plane: negotiated, stripped before the wire, harmless if leaked
 export const ENRICHMENT_PREFIX = 'x-io-';
 
+// anything outside the Matcher union matches nothing rather than throwing: a misconfigured matcher
+// must degrade to direct fetches like every other failure here, not fail the request
 export const matches = (match, url) =>
   match == null ||
   (typeof match === 'string'
     ? url.startsWith(match)
     : match instanceof RegExp
       ? match.test(url)
-      : !!match(url));
+      : typeof match === 'function' && !!match(url));
 
 export const stripEnrichment = request => {
   let found = false;
