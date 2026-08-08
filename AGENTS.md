@@ -71,3 +71,9 @@ CI runs the first four; the e2e stays local — it needs a Chromium download.
   lifecycle, `test-e2e.js` the six arms, `test-e2e-double-meh.js` the conformance arm against the
   **published** double-meh. Bun cannot transfer streams, so the buffered fallback is genuinely
   exercised by `npm run test:bun` — keep both branches asserted.
+- The conformance devDependency is the **published** client on purpose — conformance means agreeing
+  with what consumers install, not with a sibling working tree (same rule as `double-meh-bundler`'s
+  suite). The consequence is a release ordering, never a release blocker: a contract change ships on
+  each side independently and the conformance arm catches up on the next release. For unreleased
+  cross-repo work drive both packages from a throwaway script; never relax the pin to a path
+  dependency.
