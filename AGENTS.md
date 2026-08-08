@@ -51,6 +51,17 @@ CI runs the first four; the e2e stays local — it needs a Chromium download.
 - **Client-wins ownership**: pages announcing a library over `io:hello` own their bundling; the
   SW only passes their traffic through.
 - **respondWith decisions are synchronous** — only the configured matcher may gate them.
+- **`io:fetch.url` arrives absolute — a requirement on the page half, not a courtesy.** A service
+  worker's base is its own script URL, so `new Request(url)` here resolves a relative URL against
+  the script rather than the page. The worker cannot repair this: it has no way to learn the page's
+  base. Keep the reliance explicit rather than adding a guard that pretends otherwise — **the two
+  bases coincide whenever the page and the script sit in the same directory**, so a relative URL is
+  misresolved only for pages outside it (`/deep/page.html` with a root `/sw.js` → `/api/x` instead
+  of `/deep/api/x`, silently, with a 200). A guard that rejected relative URLs would therefore break
+  flat deployments that work correctly today, which the no-op-degradable rule above forbids. (Found
+  2026-08-08 from the double-meh side, where `buildUrl` returned relative URLs whenever there was no
+  query; fixed there with `absoluteUrl`. Published double-meh ≤ 1.1.1 is out of contract on this,
+  though only nested pages observe it — see the release ordering below.)
 - **Wire-format fidelity**: the bundle format is shared with double-meh and double-meh-bundler;
   changes land in all three plus the design record, in lockstep.
 - Zero runtime dependencies; the core modules import nothing platform-specific.

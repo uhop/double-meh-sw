@@ -43,6 +43,7 @@ post({type: 'io:invalidate', pattern: '/api/users/'}); // evict shared tier; io:
 post({type: 'io:version'});                            // → {current}
 post({type: 'io:upgrade'});                            // → skipWaiting()
 // io:fetch: send {type, id, url} with a MessageChannel port; reply {id, status, headers, body(ArrayBuffer, transferred)}
+// url must be absolute: a SW resolves relative URLs against its own script, not the page
 // add stream: true to get a transferred ReadableStream instead where the platform allows it
 //   (capability "stream" in the io:hello reply); the buffered default seeds the tier before replying
 ```
