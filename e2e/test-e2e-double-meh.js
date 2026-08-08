@@ -44,6 +44,30 @@ test('e2e: the published double-meh speaks the v1 contract to this SW', async t 
     );
     t.equal(counters.bundlePuts, 0, 'the SW never opened a bundle window for it');
 
+    // the streamed negotiation, end to end: io.stream.* asks, the worker transfers, the body is LIVE.
+    // /api/slow holds its second chunk until /release, so a buffered reply could not produce `first`
+    // at all — which is what makes this a test of streaming rather than of bytes arriving.
+    const streamed = await page.evaluate(async () => {
+      const timeout = ms => new Promise(done => setTimeout(() => done('TIMEOUT'), ms));
+      const run = (async () => {
+        const body = await window.io.stream.get('/api/slow', null, {transport: 'sw'});
+        const reader = body.getReader();
+        return {reader, first: new TextDecoder().decode((await reader.read()).value)};
+      })();
+      const first = await Promise.race([run.then(result => result.first), timeout(3000)]);
+      await fetch('/release'); // let the server finish either way, so the page never wedges
+      const {reader} = await run;
+      let rest = '';
+      for (;;) {
+        const {value, done} = await reader.read();
+        if (done) break;
+        rest += new TextDecoder().decode(value);
+      }
+      return {first, rest};
+    });
+    t.equal(streamed.first, 'first', 'the first chunk reached the page before the server finished');
+    t.equal(streamed.rest, 'second', 'and the remainder followed over the same transferred stream');
+
     // the channel half: an eviction on the page fans out through the SW as io:invalidated
     const invalidated = await page.evaluate(async () => {
       const seen = new Promise(done => {

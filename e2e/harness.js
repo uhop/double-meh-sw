@@ -43,11 +43,24 @@ export const withPage = async body => {
     })
   );
 
+  // a body the server deliberately leaves open: reading its first chunk before /release proves the
+  // transport is live, which a buffered reply cannot be — no timing assumption, just a handshake
+  let release;
   const server = createServer(async (request, response) => {
     const path = new URL(request.url, `http://${request.headers.host}`).pathname;
     if (path === '/bundle') {
       ++counters.bundlePuts;
       return void bundle(request, response);
+    }
+    if (path === '/api/slow') {
+      bump(counters.apiDirect, 'slow');
+      response.setHeader('content-type', 'text/plain');
+      response.write('first');
+      return void new Promise(done => (release = done)).then(() => response.end('second'));
+    }
+    if (path === '/release') {
+      if (release) release();
+      return void response.end('ok');
     }
     if (path.startsWith('/internal/')) {
       const key = path.slice('/internal/'.length);
