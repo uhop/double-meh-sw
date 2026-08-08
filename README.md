@@ -1,4 +1,4 @@
-# double-meh-sw [![NPM version][npm-img]][npm-url]
+# double-meh-sw :// [![NPM version][npm-img]][npm-url]
 
 [npm-img]: https://img.shields.io/npm/v/double-meh-sw.svg
 [npm-url]: https://npmjs.org/package/double-meh-sw
