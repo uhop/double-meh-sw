@@ -23,7 +23,7 @@ install({
 });
 ```
 
-Serve order per fetch: cache tier → bundle window (configured + matched + client is not a double-meh page) → coalesced network. Everything degrades to direct fetches on any trouble. `install()` returns `{cacheTier, coalescer, bundle, hub}`.
+Serve order per fetch: cache tier → bundle window (configured + matched + client is not a double-meh page) → coalesced network. Everything degrades to direct fetches on any trouble — a tier read or write that throws is a miss and a no-op, so only the network may fail a request. `install()` returns `{cacheTier, coalescer, bundle, hub}`.
 
 ## Modules
 

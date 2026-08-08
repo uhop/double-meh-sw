@@ -38,7 +38,10 @@ double-meh-sw
 - **Client-wins**: an `io:hello` with a `library` claim marks that client; its requests are never
   SW-bundled — the page library has more context (named bundles, explicit flush).
 - **Degradation is the design**: bundler failure or omission falls back to direct fetches per
-  waiter; a lone request skips bundling; the whole SW disappearing must be logically invisible.
+  waiter; a lone request skips bundling; a tier read or write that throws is a miss and a no-op
+  rather than a failed request; a matcher outside its type matches nothing rather than being
+  called; the whole SW disappearing must be logically invisible. Only the network may fail a
+  request.
 - **Meta channels**: `x-io-*` request headers are the per-request data plane (stripped before the
   wire); postMessage/BroadcastChannel is the control plane.
 

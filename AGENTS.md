@@ -47,7 +47,10 @@ CI runs the first four; the e2e stays local — it needs a Chromium download.
   `fetch`, and `caches`.
 - **Everything degrades to plain fetches.** The SW is a no-op-degradable adornment: bundler
   trouble, missing parts, and absent features must fall back to direct network — a SW must never
-  break pages it did not have to touch.
+  break pages it did not have to touch. That extends to the **cache tier itself**: a failed read is
+  a miss and a failed write is nothing, so a `QuotaExceededError` cannot turn a response the network
+  already delivered into a failed request. Only the network may fail a request. Same rule in the
+  `io:fetch` transport, where the tier write is best-effort on both body shapes.
 - **Client-wins ownership**: pages announcing a library over `io:hello` own their bundling; the
   SW only passes their traffic through.
 - **respondWith decisions are synchronous** — only the configured matcher may gate them.
@@ -73,7 +76,8 @@ CI runs the first four; the e2e stays local — it needs a Chromium download.
   exercises the real Cache API (Deno 2.9.2 ships `keys()` with a cross-cache orphan bug after
   `caches.delete()`; the tier still feature-detects for older runtimes).
 - Keep the degradation paths covered: bundler failure, missing parts, lone-request windows,
-  client-wins pass-through, `x-io-no-cache`, respondWith gating.
+  client-wins pass-through, `x-io-no-cache`, respondWith gating, a tier whose read or write throws,
+  and a `match` outside the `Matcher` union (which matches nothing rather than being called).
 - `tests/test-race.js` holds the fast-check properties (`t.scheduler`): coalescing under interleaved
   arrivals, invalidation exactness, and "a tab fetch always resolves". Use `s.waitFor(promise)`, not
   the deprecated `waitAll()` — `waitAll` returns early when the queue is momentarily empty, which

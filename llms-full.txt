@@ -4,7 +4,7 @@
 
 ## Design invariants
 
-- **No-op-degradable**: cache, coalescing, and bundling are performance transforms. Any of them — or the whole worker — may vanish (first visit, hard reload, unregistration) and the app must be logically indistinguishable. Every failure path degrades to a direct fetch.
+- **No-op-degradable**: cache, coalescing, and bundling are performance transforms. Any of them — or the whole worker — may vanish (first visit, hard reload, unregistration) and the app must be logically indistinguishable. Every failure path degrades to a direct fetch, the tier included: a Cache API read or write that throws (quota, corruption) is a miss and a no-op, never a failed request. Only the network may fail a request.
 - **Client-wins**: a page that announces a library via `io:hello {library}` owns its own bundling; the SW never bundles that client's requests.
 - **Synchronous respondWith gating**: only the configured matcher decides whether the SW handles a request; all async work happens after the decision.
 - **Meta channels**: `x-io-*` request headers are the per-request data plane (always stripped before the network); postMessage/BroadcastChannel is the control plane.
@@ -64,7 +64,7 @@ Memoized platform probe behind the negotiation above.
 
 ## Module: double-meh-sw/contract.js
 
-`CONTRACT_VERSION` (1), `MESSAGES`, `CHANNEL` ('io'), `CAPABILITIES`, `STREAM_CAPABILITY` ('stream', announced only where transferable streams exist), `ENRICHMENT_PREFIX` ('x-io-'), `matches(match, url)`, `stripEnrichment(request)`.
+`CONTRACT_VERSION` (1), `MESSAGES`, `CHANNEL` ('io'), `CAPABILITIES`, `STREAM_CAPABILITY` ('stream', announced only where transferable streams exist), `ENRICHMENT_PREFIX` ('x-io-'), `matches(match, url)` (null/undefined matches everything; a value outside `Matcher` matches nothing rather than being called), `stripEnrichment(request)`.
 
 ## Module: double-meh-sw/wire.js
 
